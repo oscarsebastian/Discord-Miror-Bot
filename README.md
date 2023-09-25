@@ -29,7 +29,7 @@ Here's a short guide on how you can run the Script by yourself!
 3. Refresh the site , f5
 4. Search for the science call and search for Authorization in Request Headers
 
-![discord_token](https://github.com/oscarsebastian/discord_mirror_bot/assets/58465405/78722fb7-6f6d-4fdc-ae34-397b311067e1)
+![discord_token](https://github.com/oscarsebastian/Discord-Miror-Bot/assets/58465405/b14e4152-4c36-4ee8-87af-cbe0f5606209)
 
 #### How do I obtain the Channel Id?
 
