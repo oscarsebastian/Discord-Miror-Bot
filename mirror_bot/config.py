@@ -8,6 +8,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Mapping
 
+from .properties import (
+    get_discord_webhook_api_url_prefix,
+    get_legacy_discord_webhook_api_url_prefix,
+)
+
 
 class ConfigurationError(ValueError):
     """Raised when the application configuration is incomplete or invalid."""
@@ -64,7 +69,10 @@ class MirrorJobConfig:
                 f"Source channel id for job {self.name!r} must contain only digits"
             )
         if not self.webhook_url.startswith(
-            ("https://discord.com/api/webhooks/", "https://discordapp.com/api/webhooks/")
+            (
+                get_discord_webhook_api_url_prefix(),
+                get_legacy_discord_webhook_api_url_prefix(),
+            )
         ):
             raise ConfigurationError(f"Invalid Discord webhook URL for job {self.name!r}")
         if self.poll_interval <= 0:

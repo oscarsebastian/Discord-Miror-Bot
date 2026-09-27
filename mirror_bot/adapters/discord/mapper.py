@@ -16,6 +16,10 @@ from ...domain import (
     MessageAuthor,
     Sticker,
 )
+from ...properties import (
+    build_discord_sticker_cdn_url,
+    build_discord_user_avatar_cdn_url,
+)
 
 
 def _text(value: Any) -> str | None:
@@ -36,15 +40,12 @@ def _avatar_url(author_id: str, avatar: str | None) -> str | None:
     if not author_id or not avatar:
         return None
     extension = "gif" if avatar.startswith("a_") else "png"
-    return (
-        f"https://cdn.discordapp.com/avatars/"
-        f"{author_id}/{avatar}.{extension}?size=128"
-    )
+    return build_discord_user_avatar_cdn_url(author_id, avatar, extension)
 
 
 def _sticker_url(sticker_id: str, format_type: int | None) -> str:
     extension = {3: "json", 4: "gif"}.get(format_type, "png")
-    return f"https://cdn.discordapp.com/stickers/{sticker_id}.{extension}"
+    return build_discord_sticker_cdn_url(sticker_id, extension)
 
 
 class DiscordMessageMapper:

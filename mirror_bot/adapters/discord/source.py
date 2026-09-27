@@ -8,6 +8,10 @@ from typing import Any
 import requests
 
 from ...domain import Message
+from ...properties import (
+    build_discord_channel_messages_api_url,
+    get_discord_mirror_user_agent,
+)
 from ..http import RequestExecutor, RetryPolicy, TransportError
 from .mapper import DiscordMessageMapper
 
@@ -17,8 +21,6 @@ class DiscordSourceError(RuntimeError):
 
 
 class DiscordSourceAdapter:
-    API_ROOT = "https://discord.com/api/v10"
-
     def __init__(
         self,
         token: str,
@@ -30,7 +32,10 @@ class DiscordSourceAdapter:
         self.session = session or requests.Session()
         authorization = token if token.startswith(("Bot ", "Bearer ")) else f"Bot {token}"
         self.session.headers.update(
-            {"Authorization": authorization, "User-Agent": "DiscordMirror/2.0"}
+            {
+                "Authorization": authorization,
+                "User-Agent": get_discord_mirror_user_agent(),
+            }
         )
         options: dict[str, Any] = {"retry_policy": retry_policy}
         if sleeper is not None:
@@ -46,7 +51,7 @@ class DiscordSourceAdapter:
         try:
             response = self._http.request(
                 "GET",
-                f"{self.API_ROOT}/channels/{channel_id}/messages",
+                build_discord_channel_messages_api_url(channel_id),
                 params=params,
             )
         except TransportError as exc:

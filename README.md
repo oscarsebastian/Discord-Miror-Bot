@@ -77,6 +77,7 @@ mirror_bot/adapters/persistence Estado JSON atómico y thread-safe
 mirror_bot/adapters/http.py     Reintentos y rate limits compartidos
 mirror_bot/runtime.py           Polling, threads y apagado limpio
 mirror_bot/config.py            Lectura y validación de .env/jobs.json
+mirror_bot/properties.py        URLs base, endpoints y propiedades HTTP de Discord
 mirror_bot/app.py               Composition root
 tests/                          Pruebas unitarias
 ```
@@ -104,6 +105,7 @@ Discord API  <- DiscordWebhookAdapter <- WebhookPayload
 - `JsonStateAdapter` es el único componente que escribe estado y lo hace mediante reemplazo atómico protegido entre threads.
 - `app.py` es el composition root: es el único lugar que elige qué implementación conecta a cada puerto.
 - Los secretos no aparecen en el `repr` de la configuración ni se guardan en los archivos de trabajos.
+- `properties.py` centraliza las URLs estructurales y las expone mediante funciones con nombres explícitos. Las URLs concretas de webhooks y los tokens siguen en `.env` porque son secretos de despliegue.
 
 ## Pruebas
 
