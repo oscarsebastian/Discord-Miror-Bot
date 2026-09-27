@@ -1,27 +1,27 @@
 # Discord Mirror Bot
 
-Replica mensajes de un canal de Discord en otro canal mediante un webhook. Esta versión separa configuración, acceso HTTP, transformación de mensajes, persistencia y ejecución en componentes independientes.
+Mirrors messages from one Discord channel to another through a webhook. The application separates configuration, HTTP access, message transformation, persistence, and runtime orchestration into independent components.
 
-## Qué replica
+## Mirrored content
 
-- Texto y hasta 10 embeds por mensaje.
-- Títulos, descripciones, colores, enlaces, autores, footers, fields, imágenes y thumbnails.
-- Texto y embeds presentes en el mismo mensaje, sin descartar ninguno.
-- Enlaces a archivos adjuntos y stickers.
-- Nickname del servidor, nombre global, username y avatar del autor.
-- Alias estables (`user1`, `user2`, etc.) cuando se activa el modo incógnito.
+- Message text and up to 10 embeds per message.
+- Embed titles, descriptions, colors, links, authors, footers, fields, images, and thumbnails.
+- Text and embeds contained in the same message, without discarding either.
+- Links to attachments and stickers.
+- The author's server nickname, global name, username, and avatar.
+- Stable aliases (`user1`, `user2`, and so on) when incognito mode is enabled.
 
-Las menciones se desactivan en el destino para evitar volver a notificar a usuarios, roles o `@everyone`.
+Mentions are disabled at the destination to avoid notifying users, roles, or `@everyone` again.
 
-## Requisitos
+## Requirements
 
-- Python 3.9 o superior.
-- Un bot de Discord con acceso al canal de origen y permiso **Read Message History**.
-- Un webhook en el canal de destino.
+- Python 3.9 or newer.
+- A Discord bot with access to the source channel and the **Read Message History** permission.
+- A webhook in the destination channel.
 
-No uses el token de una cuenta personal. Los self-bots infringen las condiciones de Discord. Utiliza un bot creado desde el portal oficial de desarrolladores.
+Do not use a personal account token. Self-bots violate Discord's terms. Use a bot created through the official developer portal.
 
-## Instalación
+## Installation
 
 ```powershell
 python -m venv .venv
@@ -30,10 +30,10 @@ python -m pip install -r requirements.txt
 Copy-Item .env.example .env
 ```
 
-Edita `.env`:
+Edit `.env`:
 
 ```dotenv
-DISCORD_TOKEN=el_token_del_bot
+DISCORD_TOKEN=your_bot_token
 SOURCE_CHANNEL_ID=123456789012345678
 DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
 
@@ -42,47 +42,47 @@ INCOGNITO_MODE=false
 FETCH_LIMIT=50
 ```
 
-El archivo `.env` está ignorado por Git. No subas tokens ni webhooks al repositorio.
+The `.env` file is ignored by Git. Never commit tokens or webhook URLs.
 
-Inicia el servicio con cualquiera de estas dos formas:
+Start the service with either command:
 
 ```powershell
 python main.py
 python -m mirror_bot
 ```
 
-En la primera ejecución se procesan los últimos `FETCH_LIMIT` mensajes. Después se guarda por cada trabajo el último ID enviado en `data/state.json`. El cursor solo avanza cuando el webhook confirma la entrega, así que un fallo temporal no hace perder mensajes.
+On its first run, the application processes the latest `FETCH_LIMIT` messages. It then stores the last delivered message ID for each job in `data/state.json`. A cursor advances only after the webhook confirms delivery, so a temporary failure does not lose messages.
 
-## Varias réplicas
+## Multiple mirrors
 
-Copia `jobs.example.json` como `jobs.json`. Ese archivo solo guarda opciones y los nombres de las variables que contienen secretos; los valores secretos siguen en `.env`.
+Copy `jobs.example.json` to `jobs.json`. This file contains only options and the names of environment variables holding secrets; the secret values remain in `.env`.
 
 ```dotenv
 MIRROR_JOBS_FILE=jobs.json
-DISCORD_TOKEN=token_compartido
+DISCORD_TOKEN=shared_token
 DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
 ALERTS_WEBHOOK_URL=https://discord.com/api/webhooks/...
 ```
 
-Cada trabajo mantiene un cursor independiente, incluso si dos trabajos leen el mismo canal.
+Each job maintains an independent cursor, even when multiple jobs read the same source channel.
 
-## Estructura
+## Project structure
 
 ```text
-main.py                         Punto de entrada compatible
-mirror_bot/domain/              Modelos inmutables, sin HTTP ni archivos
-mirror_bot/application/         Caso de uso, puertos y creación del payload
-mirror_bot/adapters/discord/    Entrada Discord y salida webhook
-mirror_bot/adapters/persistence Estado JSON atómico y thread-safe
-mirror_bot/adapters/http.py     Reintentos y rate limits compartidos
-mirror_bot/runtime.py           Polling, threads y apagado limpio
-mirror_bot/config.py            Lectura y validación de .env/jobs.json
-mirror_bot/properties.py        URLs base, endpoints y propiedades HTTP de Discord
+main.py                         Backwards-compatible entry point
+mirror_bot/domain/              Immutable models with no HTTP or file access
+mirror_bot/application/         Use case, ports, and payload construction
+mirror_bot/adapters/discord/    Discord input and webhook output
+mirror_bot/adapters/persistence Atomic, thread-safe JSON state
+mirror_bot/adapters/http.py     Shared retries and rate-limit handling
+mirror_bot/runtime.py           Polling, worker threads, and graceful shutdown
+mirror_bot/config.py            .env and jobs.json loading and validation
+mirror_bot/properties.py        Discord endpoints and HTTP client properties
 mirror_bot/app.py               Composition root
-tests/                          Pruebas unitarias
+tests/                          Unit tests
 ```
 
-## Decisiones de diseño
+## Design
 
 ```text
 Discord JSON -> DiscordSourceAdapter -> Message
@@ -97,17 +97,17 @@ Discord API  <- DiscordWebhookAdapter <- WebhookPayload
                 JsonStateAdapter
 ```
 
-- Los diccionarios de la API solo existen dentro del adaptador de Discord. `DiscordMessageMapper` los convierte inmediatamente en dataclasses inmutables.
-- `application/ports.py` define `MessageSource`, `MessageDestination` y `MirrorState`. El caso de uso no conoce Requests, Discord ni JSON.
-- `MirrorService` procesa un lote; `PollingRunner` decide cuándo repetirlo. Separar estas responsabilidades permite probar la lógica sin sleeps ni threads.
-- `WebhookPayloadBuilder` es una transformación pura entre modelos y aplica los límites de Discord sin acceder a archivos ni realizar peticiones.
-- Los adaptadores de Discord y webhook tienen contratos y errores independientes. `adapters/http.py` comparte solamente el transporte y los reintentos.
-- `JsonStateAdapter` es el único componente que escribe estado y lo hace mediante reemplazo atómico protegido entre threads.
-- `app.py` es el composition root: es el único lugar que elige qué implementación conecta a cada puerto.
-- Los secretos no aparecen en el `repr` de la configuración ni se guardan en los archivos de trabajos.
-- `properties.py` centraliza las URLs estructurales y las expone mediante funciones con nombres explícitos. Las URLs concretas de webhooks y los tokens siguen en `.env` porque son secretos de despliegue.
+- API dictionaries exist only inside the Discord adapter. `DiscordMessageMapper` immediately converts them into immutable dataclasses.
+- `application/ports.py` defines `MessageSource`, `MessageDestination`, and `MirrorState`. The use case does not depend on Requests, Discord, or JSON.
+- `MirrorService` processes one batch; `PollingRunner` decides when to repeat it. Keeping these responsibilities separate makes the logic testable without sleeps or threads.
+- `WebhookPayloadBuilder` is a pure model-to-model transformation that applies Discord's limits without accessing files or making requests.
+- The Discord source and webhook adapters have separate contracts and errors. `adapters/http.py` shares only transport and retry behavior.
+- `JsonStateAdapter` is the only component that writes state. It uses an atomic replacement guarded across threads.
+- `app.py` is the composition root and the only place that selects which implementations are connected to each port.
+- Secrets are excluded from configuration representations and are never stored in job files.
+- `properties.py` centralizes structural URLs and exposes them through explicitly named functions. Concrete webhook URLs and tokens remain in `.env` because they are deployment secrets.
 
-## Pruebas
+## Tests
 
 ```powershell
 python -m pip install -r requirements-dev.txt
@@ -115,8 +115,8 @@ python -m coverage run -m unittest discover
 python -m coverage report
 ```
 
-La cobertura incluye ramas y debe permanecer por encima del 90%. La misma suite se ejecuta automáticamente en GitHub Actions con Python 3.9, 3.11 y 3.13.
+Coverage includes branches and must remain above 90%. GitHub Actions runs the same suite on Python 3.9, 3.11, and 3.13.
 
-## Nota
+## Responsible use
 
-Respeta las condiciones de Discord, los permisos de los servidores y la privacidad de sus miembros. Este proyecto no evita controles de acceso: el bot solo puede leer canales para los que tenga permisos explícitos.
+Respect Discord's terms, server permissions, and member privacy. This project does not bypass access controls: the bot can read only channels for which it has explicit permission.

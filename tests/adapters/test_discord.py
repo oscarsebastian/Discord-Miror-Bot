@@ -14,6 +14,7 @@ class DiscordSourceAdapterTests(unittest.TestCase):
         messages = client.fetch_messages("123", "1", 50)
         self.assertEqual([message.id for message in messages], ["2"])
         self.assertEqual(session.headers["Authorization"], "Bot secret")
+        self.assertIn("Chrome/153.0.0.0", session.headers["User-Agent"])
         method, url, options = session.calls[0]
         self.assertEqual(method, "GET")
         self.assertTrue(url.endswith("/channels/123/messages"))

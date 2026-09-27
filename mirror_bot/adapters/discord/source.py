@@ -10,7 +10,7 @@ import requests
 from ...domain import Message
 from ...properties import (
     build_discord_channel_messages_api_url,
-    get_discord_mirror_user_agent,
+    get_chrome_browser_user_agent,
 )
 from ..http import RequestExecutor, RetryPolicy, TransportError
 from .mapper import DiscordMessageMapper
@@ -34,7 +34,7 @@ class DiscordSourceAdapter:
         self.session.headers.update(
             {
                 "Authorization": authorization,
-                "User-Agent": get_discord_mirror_user_agent(),
+                "User-Agent": get_chrome_browser_user_agent(),
             }
         )
         options: dict[str, Any] = {"retry_policy": retry_policy}

@@ -47,6 +47,10 @@ def get_legacy_discord_webhook_api_url_prefix() -> str:
     return "https://discordapp.com/api/webhooks/"
 
 
-def get_discord_mirror_user_agent() -> str:
-    """Return the HTTP user agent sent by this application."""
-    return "DiscordMirror/2.0"
+def get_chrome_browser_user_agent() -> str:
+    """Return a reduced Windows user agent matching desktop Google Chrome."""
+    return (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/153.0.0.0 Safari/537.36"
+    )

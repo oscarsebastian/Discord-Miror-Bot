@@ -6,7 +6,7 @@ from mirror_bot.properties import (
     build_discord_user_avatar_cdn_url,
     get_discord_api_base_url,
     get_discord_cdn_base_url,
-    get_discord_mirror_user_agent,
+    get_chrome_browser_user_agent,
     get_discord_webhook_api_url_prefix,
     get_legacy_discord_webhook_api_url_prefix,
 )
@@ -40,7 +40,10 @@ class DiscordPropertiesTests(unittest.TestCase):
             get_legacy_discord_webhook_api_url_prefix(),
             "https://discordapp.com/api/webhooks/",
         )
-        self.assertEqual(get_discord_mirror_user_agent(), "DiscordMirror/2.0")
+        user_agent = get_chrome_browser_user_agent()
+        self.assertTrue(user_agent.startswith("Mozilla/5.0 (Windows NT 10.0; Win64; x64)"))
+        self.assertIn("Chrome/153.0.0.0", user_agent)
+        self.assertTrue(user_agent.endswith("Safari/537.36"))
 
 
 if __name__ == "__main__":
