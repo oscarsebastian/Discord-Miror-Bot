@@ -1,0 +1,14 @@
+[run]
+branch = True
+source = mirror_bot
+omit =
+    mirror_bot/__main__.py
+
+[report]
+show_missing = True
+skip_covered = True
+fail_under = 90
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.:
+    ^\s*\.\.\.$

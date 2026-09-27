@@ -1,0 +1,20 @@
+[
+  {
+    "name": "general",
+    "token_env": "DISCORD_TOKEN",
+    "source_channel_id": "123456789012345678",
+    "webhook_env": "DISCORD_WEBHOOK_URL",
+    "poll_interval_seconds": 5,
+    "incognito": false,
+    "fetch_limit": 50
+  },
+  {
+    "name": "alerts",
+    "token_env": "DISCORD_TOKEN",
+    "source_channel_id": "987654321098765432",
+    "webhook_env": "ALERTS_WEBHOOK_URL",
+    "poll_interval_seconds": 10,
+    "incognito": true,
+    "fetch_limit": 25
+  }
+]
