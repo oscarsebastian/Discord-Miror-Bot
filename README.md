@@ -1,48 +1,122 @@
-# Python Discord Mirror Bot
+# Discord Mirror Bot
 
-## A fully functional Python script that enables you to mirror any desired Discord channel onto another server. This powerful tool is capable of cloning all message types, including webhooks.
+Mirrors messages from one Discord channel to another through a webhook. The application separates configuration, HTTP access, message transformation, persistence, and runtime orchestration into independent components.
 
-This project is an example which was created to enable anyone to understand how Discord Mirror's work and what's behind them. Every part of the code is in charge of some specific requirements:
+## Mirrored content
 
-* Automatically creates task file (CSV)
-* Verify task information given by the user
-* Retrieve and compare corresponding messages from the Discord API
-* Identify and extract messages
-* Send (Mirror) the new messages to the server
+- Message text and up to 10 embeds per message.
+- Embed titles, descriptions, colors, links, authors, footers, fields, images, and thumbnails.
+- Text and embeds contained in the same message, without discarding either.
+- Links to attachments and stickers.
+- The author's server nickname, global name, username, and avatar.
+- Stable aliases (`user1`, `user2`, and so on) when incognito mode is enabled.
 
-## How to run:
+Mentions are disabled at the destination to avoid notifying users, roles, or `@everyone` again.
 
-Here's a short guide on how you can run the Script by yourself!
+## Requirements
 
-1. Clone this project
-2. Change directory to the project
-3. Install requirements with : pip install -r requirements.txt
-4. Fill in the task.csv file
-5. Run the main.py file
+- Python 3.9 or newer.
+- A Discord bot with access to the source channel and the **Read Message History** permission.
+- A webhook in the destination channel.
 
-## Further information
+Do not use a personal account token. Self-bots violate Discord's terms. Use a bot created through the official developer portal.
 
-#### How do I obtain the Account Token?
+## Installation
 
-1. Head onto your Discord App , click Shift + i
-2. Go to network tab and search for science (it's an api call)
-3. Refresh the site , f5
-4. Search for the science call and search for Authorization in Request Headers
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+Copy-Item .env.example .env
+```
 
-![discord_token](https://github.com/oscarsebastian/Discord-Miror-Bot/assets/58465405/b14e4152-4c36-4ee8-87af-cbe0f5606209)
+Edit `.env`:
 
-#### How do I obtain the Channel Id?
+```dotenv
+DISCORD_TOKEN=your_bot_token
+SOURCE_CHANNEL_ID=123456789012345678
+DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
 
-1. Turn on developper mode in Discord Settings
-2. Right click on the given channel and click (Copy Channel Id)
+POLL_INTERVAL_SECONDS=5
+INCOGNITO_MODE=false
+FETCH_LIMIT=50
+```
 
-#### Features
+The `.env` file is ignored by Git. Never commit tokens or webhook URLs.
 
-* Select incognito_mode to True if you dont want the true username or avatar to show up in the mirrored channel (Anonimous)
-* You can also select the desired request delay in the delay columns
+Start the service with either command:
 
-##  DISCLAIMER
+```powershell
+python main.py
+python -m mirror_bot
+```
 
-**IMPORTANT:** Mirroring Discord channels, including the use of this script, may be against Discord's Terms of Service (TOS). This project is intended solely for educational purposes, and the creator assumes no responsibility for any potential account bans resulting from its use. For your safety, it is strongly advised to use a burner Discord account when experimenting with this script, as sharing your account token with anyone could grant them full control of your account, even if two-factor authentication (2FA) is enabled. Always exercise caution and adhere to Discord's policies and guidelines.
+On its first run, the application processes the latest `FETCH_LIMIT` messages. It then stores the last delivered message ID for each job in `data/state.json`. A cursor advances only after the webhook confirms delivery, so a temporary failure does not lose messages.
 
+## Multiple mirrors
 
+Copy `jobs.example.json` to `jobs.json`. This file contains only options and the names of environment variables holding secrets; the secret values remain in `.env`.
+
+```dotenv
+MIRROR_JOBS_FILE=jobs.json
+DISCORD_TOKEN=shared_token
+DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
+ALERTS_WEBHOOK_URL=https://discord.com/api/webhooks/...
+```
+
+Each job maintains an independent cursor, even when multiple jobs read the same source channel.
+
+## Project structure
+
+```text
+main.py                         Backwards-compatible entry point
+mirror_bot/domain/              Immutable models with no HTTP or file access
+mirror_bot/application/         Use case, ports, and payload construction
+mirror_bot/adapters/discord/    Discord input and webhook output
+mirror_bot/adapters/persistence Atomic, thread-safe JSON state
+mirror_bot/adapters/http.py     Shared retries and rate-limit handling
+mirror_bot/runtime.py           Polling, worker threads, and graceful shutdown
+mirror_bot/config.py            .env and jobs.json loading and validation
+mirror_bot/properties.py        Discord endpoints and HTTP client properties
+mirror_bot/app.py               Composition root
+tests/                          Unit tests
+```
+
+## Design
+
+```text
+Discord JSON -> DiscordSourceAdapter -> Message
+                                        |
+                                  MirrorService
+                                        |
+Discord API  <- DiscordWebhookAdapter <- WebhookPayload
+
+                 MirrorState port
+                        ^
+                        |
+                JsonStateAdapter
+```
+
+- API dictionaries exist only inside the Discord adapter. `DiscordMessageMapper` immediately converts them into immutable dataclasses.
+- `application/ports.py` defines `MessageSource`, `MessageDestination`, and `MirrorState`. The use case does not depend on Requests, Discord, or JSON.
+- `MirrorService` processes one batch; `PollingRunner` decides when to repeat it. Keeping these responsibilities separate makes the logic testable without sleeps or threads.
+- `WebhookPayloadBuilder` is a pure model-to-model transformation that applies Discord's limits without accessing files or making requests.
+- The Discord source and webhook adapters have separate contracts and errors. `adapters/http.py` shares only transport and retry behavior.
+- `JsonStateAdapter` is the only component that writes state. It uses an atomic replacement guarded across threads.
+- `app.py` is the composition root and the only place that selects which implementations are connected to each port.
+- Secrets are excluded from configuration representations and are never stored in job files.
+- `properties.py` centralizes structural URLs and exposes them through explicitly named functions. Concrete webhook URLs and tokens remain in `.env` because they are deployment secrets.
+
+## Tests
+
+```powershell
+python -m pip install -r requirements-dev.txt
+python -m coverage run -m unittest discover
+python -m coverage report
+```
+
+Coverage includes branches and must remain above 90%. GitHub Actions runs the same suite on Python 3.9, 3.11, and 3.13.
+
+## Responsible use
+
+Respect Discord's terms, server permissions, and member privacy. This project does not bypass access controls: the bot can read only channels for which it has explicit permission.
