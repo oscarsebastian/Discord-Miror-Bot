@@ -7,7 +7,7 @@ here. They remain environment-backed secrets in :mod:`mirror_bot.config`.
 
 def get_discord_api_base_url() -> str:
     """Return the versioned base URL for Discord's REST API."""
-    return "https://discord.com/api/v10"
+    return "https://discord.com/api/v9"
 
 
 def build_discord_channel_messages_api_url(channel_id: str) -> str:
