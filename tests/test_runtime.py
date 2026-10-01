@@ -74,15 +74,18 @@ class MirrorApplicationTests(unittest.TestCase):
 
     def test_run_joins_and_stops(self):
         thread = Mock()
+        thread.is_alive.side_effect = [True, False]
         runner = SimpleNamespace(name="one", run=lambda _: None)
         application = MirrorApplication([runner], thread_factory=Mock(return_value=thread))
         application.run()
         self.assertTrue(application.stop_event.is_set())
-        self.assertEqual(thread.join.call_count, 2)
+        self.assertEqual(thread.join.call_count, 1)
+        thread.join.assert_called_once_with(timeout=0.25)
 
     def test_stops_after_keyboard_interrupt(self):
         thread = Mock()
-        thread.join.side_effect = [KeyboardInterrupt, None]
+        thread.is_alive.return_value = True
+        thread.join.side_effect = KeyboardInterrupt
         runner = SimpleNamespace(name="one", run=lambda _: None)
         application = MirrorApplication([runner], thread_factory=Mock(return_value=thread))
         application.run()

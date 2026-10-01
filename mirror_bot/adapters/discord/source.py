@@ -30,7 +30,7 @@ class DiscordSourceAdapter:
         sleeper: Callable[[float], None] | None = None,
     ):
         self.session = session or requests.Session()
-        authorization = token if token.startswith(("Bot ", "Bearer ")) else f"Bot {token}"
+        authorization = token if token.startswith(("Bot ", "Bearer ")) else token
         self.session.headers.update(
             {
                 "Authorization": authorization,

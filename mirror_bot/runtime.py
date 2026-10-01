@@ -57,19 +57,27 @@ class MirrorApplication:
                 args=(self.stop_event,),
                 name=f"mirror-{runner.name}",
             )
+            thread.daemon = True
             thread.start()
             self.threads.append(thread)
 
     def stop(self) -> None:
         self.stop_event.set()
         for thread in self.threads:
-            thread.join()
+            if not thread.is_alive():
+                continue
+            try:
+                thread.join(timeout=1.0)
+            except KeyboardInterrupt:
+                LOGGER.warning("Interrupted while waiting for worker %s to stop", thread.name)
 
     def run(self) -> None:
         self.start()
         try:
-            for thread in self.threads:
-                thread.join()
+            while any(thread.is_alive() for thread in self.threads):
+                for thread in self.threads:
+                    if thread.is_alive():
+                        thread.join(timeout=0.25)
         except KeyboardInterrupt:
             LOGGER.info("Stopping mirror workers...")
         finally:

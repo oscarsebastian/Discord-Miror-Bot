@@ -8,12 +8,12 @@ from tests.adapters.fakes import FakeResponse, FakeSession
 
 
 class DiscordSourceAdapterTests(unittest.TestCase):
-    def test_fetches_messages_with_cursor_and_bot_authorization(self):
+    def test_fetches_messages_with_cursor_and_raw_authorization(self):
         session = FakeSession([FakeResponse(200, [{"id": "2"}, "invalid"])])
         client = DiscordSourceAdapter("secret", 8, session)
         messages = client.fetch_messages("123", "1", 50)
         self.assertEqual([message.id for message in messages], ["2"])
-        self.assertEqual(session.headers["Authorization"], "Bot secret")
+        self.assertEqual(session.headers["Authorization"], "secret")
         self.assertIn("Chrome/153.0.0.0", session.headers["User-Agent"])
         method, url, options = session.calls[0]
         self.assertEqual(method, "GET")
@@ -25,6 +25,11 @@ class DiscordSourceAdapterTests(unittest.TestCase):
         session = FakeSession([FakeResponse(200, [])])
         DiscordSourceAdapter("Bearer secret", 10, session)
         self.assertEqual(session.headers["Authorization"], "Bearer secret")
+
+    def test_preserves_explicit_bot_scheme(self):
+        session = FakeSession([FakeResponse(200, [])])
+        DiscordSourceAdapter("Bot secret", 10, session)
+        self.assertEqual(session.headers["Authorization"], "Bot secret")
 
     def test_accepts_an_injected_sleeper(self):
         session = FakeSession([FakeResponse(500), FakeResponse(200, [])])
